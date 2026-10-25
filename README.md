@@ -1,4 +1,4 @@
-# Hanoi Roadster Rocket 3D (bản MOD)
+# Hanoi Roadster Rocket (bản MOD)
 
 Bản sao của [teslaroadstertest](https://github.com/toilalode/teslaroadstertest) có kèm thêm `mod.js`.
 
