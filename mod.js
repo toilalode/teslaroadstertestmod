@@ -4,13 +4,13 @@
    file HTML (ngay trước </body>, SAU thẻ <script> chính của game):
        <script src="mod.js"></script>
    Tính năng: Bất tử · No clip · Năng lượng vô hạn · Không hết giờ
-              · Tự thắng · Nút MOD kéo thả được
+              · Tự thắng · Chạy siêu tốc · Nút MOD kéo thả được
    ===================================================================== */
 (function () {
   'use strict';
 
   /* ---------- 1. Trạng thái MOD (lưu vào localStorage) ---------- */
-  var MOD = { god: 0, nc: 0, inf: 0, time: 0, aw: 0 };
+  var MOD = { god: 0, nc: 0, inf: 0, time: 0, aw: 0, sp: 0 };
   try { Object.assign(MOD, JSON.parse(localStorage.getItem('hrr3d_mod') || '{}')); } catch (e) {}
   window.MOD = MOD; // code đã vá trong update() đọc biến này
 
@@ -35,13 +35,16 @@
     console.warn('[MOD] Không tìm thấy đoạn cần vá trong update() — No clip có thể không xuyên được mép đường/ngã tư.');
   }
 
-  // 3b. Bọc update(): năng lượng vô hạn, bất tử/no clip (không bị CSGT), dừng đồng hồ, tự thắng
+  // 3b. Bọc update(): năng lượng vô hạn, bất tử/no clip (không bị CSGT), dừng đồng hồ, tự thắng, siêu tốc
+  var SUPER_SPEED = 90; // m/s (~324 km/h)
   update = function (dt) {
     if (MOD.nc) { en.f = 100; }
     if (MOD.inf) { en.b = en.f = en.w = en.l = 100; }
     if ((MOD.god || MOD.nc) && P.pol) { P.pol = 0; P.polCd = 60; relCop(); }
     if (MOD.time && simT + dt >= TL - 1) simT = TL - 1 - dt; // sau simT+=dt thì còn đúng 1 giây
     if (MOD.aw && simT > 1.5) { autoWin(); return; }
+    // Siêu tốc: giữ vận tốc cao; bấm S/phanh để thoát khỏi siêu tốc tạm thời; không áp dụng khi đang sạc/bám tường
+    if (MOD.sp && !P.chg && !P.wall && ctl().thr >= 0) P.vf = SUPER_SPEED;
     return baseUpdate(dt);
   };
 
@@ -74,7 +77,7 @@
   ];
   p.innerHTML = '<b style="color:#0ff">BẢN MOD</b>' +
     items.map(function (i) { return '<label>' + i[1] + '<input type="checkbox" data-m="' + i[0] + '"' + (MOD[i[0]] ? ' checked' : '') + '></label>'; }).join('') +
-    '<button id="modw">🏆 AUTO WIN NGAY</button>';
+    '<button id="modsp"></button>';
   document.body.appendChild(b); document.body.appendChild(p);
 
   // Không cho sự kiện của nút/bảng lọt xuống điều khiển game
@@ -127,5 +130,16 @@
       try { localStorage.setItem('hrr3d_mod', JSON.stringify(MOD)); } catch (x) {}
     };
   });
-  p.querySelector('#modw').onclick = function () { p.style.display = 'none'; autoWin(); };
+
+  // Nút bật/tắt chạy siêu tốc
+  var sb = p.querySelector('#modsp');
+  function paintSp() {
+    sb.textContent = '🚀 CHẠY SIÊU TỐC: ' + (MOD.sp ? 'BẬT' : 'TẮT');
+    sb.style.background = MOD.sp ? '#2ecc71' : '#fc0';
+  }
+  paintSp();
+  sb.onclick = function () {
+    MOD.sp = MOD.sp ? 0 : 1; paintSp();
+    try { localStorage.setItem('hrr3d_mod', JSON.stringify(MOD)); } catch (x) {}
+  };
 })();
