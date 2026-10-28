@@ -17,7 +17,7 @@ Chạy tại: https://toilalode.github.io/teslaroadstertestmod/
 | Năng lượng vô hạn | Q / E / R / F luôn đầy |
 | Không bị hết giờ | Đồng hồ không chạy quá hạn |
 | Tự thắng khi vào game | Vào game là thắng ngay |
-| AUTO WIN NGAY | Nút thắng tức thì |
+| 🚀 CHẠY SIÊU TỐC (nút bật/tắt) | Giữ tốc độ ~324 km/h; giữ S / phanh để giảm tốc, không áp dụng khi đang sạc hoặc bám tường |
 
 Trạng thái MOD lưu trong `localStorage` (`hrr3d_mod`, `hrr3d_modpos`). Muốn chơi bản gốc, xóa dòng `<script src="mod.js"></script>` trong `index.html`.
 
