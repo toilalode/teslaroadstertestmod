@@ -4,7 +4,7 @@
    file HTML (ngay trước </body>, SAU thẻ <script> chính của game):
        <script src="mod.js"></script>
    Tính năng: Bất tử · No clip · Năng lượng vô hạn · Không hết giờ
-              · Tự thắng · Chạy siêu tốc · Nút MOD kéo thả được
+              · Tự thắng · Chạy siêu tốc (boost x2) · Nút MOD kéo thả được
    ===================================================================== */
 (function () {
   'use strict';
@@ -22,17 +22,24 @@
   };
 
   /* ---------- 3. Vá hàm của game ---------- */
-  // 3a. update(): vá 2 chỗ giới hạn (kẹp ngã tư + kẹp mép đường) để No clip hoạt động
+  // 3a. update(): vá các chỗ giới hạn để No clip và Chạy siêu tốc hoạt động
+  //   A1, A2: kẹp ngã tư + kẹp mép đường (No clip)
+  //   A3: tốc độ tối đa thường 25 -> 90 m/s khi bật siêu tốc
+  //   A4: Rocket Boost x2 (tăng tốc 45 -> 90, trần 70 -> 140 m/s) khi bật siêu tốc
   var src = update.toString(), patched = 0;
-  var A1 = 'if(a!=xq[0]||b!=xq[1]){P.x=cx(s0)';
-  var A2 = 'else if(!xq&&(lat<-44||lat>44)){';
-  if (src.indexOf(A1) >= 0) { src = src.replace(A1, 'if(!MOD.nc&&(a!=xq[0]||b!=xq[1])){P.x=cx(s0)'); patched++; }
-  if (src.indexOf(A2) >= 0) { src = src.replace(A2, 'else if(!MOD.nc&&!xq&&(lat<-44||lat>44)){'); patched++; }
+  var patches = [
+    ['if(a!=xq[0]||b!=xq[1]){P.x=cx(s0)', 'if(!MOD.nc&&(a!=xq[0]||b!=xq[1])){P.x=cx(s0)'],
+    ['else if(!xq&&(lat<-44||lat>44)){', 'else if(!MOD.nc&&!xq&&(lat<-44||lat>44)){'],
+    ['const vmax=25;', 'const vmax=MOD.sp?90:25;'],
+    ['else if(P.boost)P.vf=Math.min(70,P.vf+45*dt);', 'else if(P.boost)P.vf=Math.min(MOD.sp?140:70,P.vf+(MOD.sp?90:45)*dt);']
+  ];
+  patches.forEach(function (x) {
+    if (src.indexOf(x[0]) >= 0) { src = src.replace(x[0], x[1]); patched++; }
+    else console.warn('[MOD] Không tìm thấy đoạn cần vá:', x[0]);
+  });
   var baseUpdate = update;
-  if (patched === 2) {
+  if (patched > 0) {
     try { baseUpdate = (0, eval)('(' + src + ')'); } catch (e) { console.warn('[MOD] Không vá được update():', e); }
-  } else {
-    console.warn('[MOD] Không tìm thấy đoạn cần vá trong update() — No clip có thể không xuyên được mép đường/ngã tư.');
   }
 
   // 3b. Bọc update(): năng lượng vô hạn, bất tử/no clip (không bị CSGT), dừng đồng hồ, tự thắng, siêu tốc
@@ -43,8 +50,8 @@
     if ((MOD.god || MOD.nc) && P.pol) { P.pol = 0; P.polCd = 60; relCop(); }
     if (MOD.time && simT + dt >= TL - 1) simT = TL - 1 - dt; // sau simT+=dt thì còn đúng 1 giây
     if (MOD.aw && simT > 1.5) { autoWin(); return; }
-    // Siêu tốc: giữ vận tốc cao; bấm S/phanh để thoát khỏi siêu tốc tạm thời; không áp dụng khi đang sạc/bám tường
-    if (MOD.sp && !P.chg && !P.wall && ctl().thr >= 0) P.vf = SUPER_SPEED;
+    // Siêu tốc: chỉ tăng tốc khi người chơi đang di chuyển (giữ ga / W / joystick tiến); đứng yên thì không tự chạy
+    if (MOD.sp && !P.chg && !P.wall && ctl().thr > 0 && P.vf < SUPER_SPEED) P.vf = Math.min(SUPER_SPEED, P.vf + 60 * dt);
     return baseUpdate(dt);
   };
 
@@ -134,7 +141,7 @@
   // Nút bật/tắt chạy siêu tốc
   var sb = p.querySelector('#modsp');
   function paintSp() {
-    sb.textContent = '🚀 CHẠY SIÊU TỐC: ' + (MOD.sp ? 'BẬT' : 'TẮT');
+    sb.textContent = '🚀 CHẠY SIÊU TỐC (BOOST x2): ' + (MOD.sp ? 'BẬT' : 'TẮT');
     sb.style.background = MOD.sp ? '#2ecc71' : '#fc0';
   }
   paintSp();
