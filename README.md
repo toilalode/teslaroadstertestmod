@@ -17,7 +17,7 @@ Chạy tại: https://toilalode.github.io/teslaroadstertestmod/
 | Năng lượng vô hạn | Q / E / R / F luôn đầy |
 | Không bị hết giờ | Đồng hồ không chạy quá hạn |
 | Tự thắng khi vào game | Vào game là thắng ngay |
-| 🚀 CHẠY SIÊU TỐC (nút bật/tắt) | Giữ tốc độ ~324 km/h; giữ S / phanh để giảm tốc, không áp dụng khi đang sạc hoặc bám tường |
+| 🚀 CHẠY SIÊU TỐC (BOOST x2) | Nút bật/tắt. Chỉ tăng tốc khi người chơi đang di chuyển (giữ W / ga / joystick tiến), đứng yên thì xe không tự chạy. Tốc độ thường tối đa ~324 km/h; Rocket Boost (Q) gấp đôi bản gốc: gia tốc 45 → 90, trần 70 → 140 m/s (~504 km/h) |
 
 Trạng thái MOD lưu trong `localStorage` (`hrr3d_mod`, `hrr3d_modpos`). Muốn chơi bản gốc, xóa dòng `<script src="mod.js"></script>` trong `index.html`.
 
