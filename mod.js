@@ -66,14 +66,14 @@
   /* ---------- 4. Giao diện MOD (nút kéo thả được) ---------- */
   var st = document.createElement('style');
   st.textContent =
-    '#modb{position:fixed;right:6px;top:42%;touch-action:none;user-select:none;-webkit-user-select:none;z-index:9999;padding:8px 10px;font:bold 12px "Courier New",monospace;background:#9945ff;color:#fff;border:1px solid #fff;border-radius:8px;opacity:.85}' +
-    '#modp{position:fixed;right:6px;top:calc(42% + 38px);z-index:9999;display:none;width:220px;padding:10px;background:rgba(10,10,25,.94);color:#fff;border:1px solid #9945ff;border-radius:10px;font:12px "Courier New",monospace}' +
+    '#modb{position:fixed;left:6px;top:42%;touch-action:none;user-select:none;-webkit-user-select:none;z-index:2147483000;padding:8px 10px;font:bold 12px "Courier New",monospace;background:#9945ff;color:#fff;border:1px solid #fff;border-radius:8px;opacity:.85}' +
+    '#modp{position:fixed;left:6px;top:calc(42% + 38px);z-index:2147483000;display:none;width:220px;padding:10px;background:rgba(10,10,25,.94);color:#fff;border:1px solid #9945ff;border-radius:10px;font:12px "Courier New",monospace;touch-action:manipulation}' +
     '#modp label{display:flex;justify-content:space-between;align-items:center;margin:7px 0}' +
     '#modp input{width:20px;height:20px}' +
     '#modp button{width:100%;margin-top:8px;padding:10px;font:bold 13px "Courier New",monospace;background:#fc0;color:#000;border:0;border-radius:8px}';
   document.head.appendChild(st);
 
-  var b = document.createElement('button'); b.id = 'modb'; b.textContent = 'MOD';
+  var b = document.createElement('button'); b.id = 'modb'; b.textContent = 'MOD'; b.tabIndex = -1;
   var p = document.createElement('div'); p.id = 'modp';
   var items = [
     ['god', '🛡 Bất tử (không va chạm, không bị CSGT)'],
@@ -83,12 +83,13 @@
     ['aw', '🏆 Tự thắng khi vào game']
   ];
   p.innerHTML = '<b style="color:#0ff">BẢN MOD</b>' +
-    items.map(function (i) { return '<label>' + i[1] + '<input type="checkbox" data-m="' + i[0] + '"' + (MOD[i[0]] ? ' checked' : '') + '></label>'; }).join('') +
-    '<button id="modsp"></button>';
+    items.map(function (i) { return '<label>' + i[1] + '<input type="checkbox" tabindex="-1" data-m="' + i[0] + '"' + (MOD[i[0]] ? ' checked' : '') + '></label>'; }).join('') +
+    '<button id="modsp" tabindex="-1"></button>';
   document.body.appendChild(b); document.body.appendChild(p);
 
-  // Không cho sự kiện của nút/bảng lọt xuống điều khiển game
-  ['touchstart', 'touchend', 'mousedown', 'pointerdown', 'click'].forEach(function (t) {
+  // Chặn mọi sự kiện của nút/bảng lọt xuống game (camera, nút HUD, bàn phím...)
+  ['touchstart', 'touchmove', 'touchend', 'mousedown', 'mousemove', 'mouseup', 'pointerdown', 'pointermove', 'pointerup',
+   'pointercancel', 'click', 'dblclick', 'wheel', 'keydown', 'keyup'].forEach(function (t) {
     b.addEventListener(t, function (e) { e.stopPropagation(); });
     p.addEventListener(t, function (e) { e.stopPropagation(); });
   });
@@ -97,7 +98,7 @@
   function place() { // đặt bảng ngay dưới nút (hoặc phía trên nếu sát đáy)
     var r = b.getBoundingClientRect(), pw = p.offsetWidth || 220, ph = p.offsetHeight || 200;
     p.style.right = 'auto';
-    p.style.left = clampN(r.right - pw, 4, innerWidth - pw - 4) + 'px';
+    p.style.left = clampN(r.left, 4, innerWidth - pw - 4) + 'px';
     var t = r.bottom + 6; if (t + ph > innerHeight - 4) t = Math.max(4, r.top - ph - 6);
     p.style.top = t + 'px';
   }
@@ -105,10 +106,21 @@
     x = clampN(x, 0, innerWidth - b.offsetWidth); y = clampN(y, 0, innerHeight - b.offsetHeight);
     b.style.right = 'auto'; b.style.left = x + 'px'; b.style.top = y + 'px';
   }
+  function resetPos() { b.style.right = 'auto'; b.style.left = '6px'; b.style.top = '42%'; }
+  // Nút MOD không được nằm đè lên nút/HUD của game (nút đổi camera C, pause, joystick, nút kỹ năng)
+  function hitsGame() {
+    var r = b.getBoundingClientRect();
+    return Array.prototype.some.call(document.querySelectorAll('#pb,#bc,#bv,#bt,#joy,#btns'), function (el) {
+      var q = el.getBoundingClientRect(); if (!q.width || !q.height) return false;
+      return !(r.right < q.left || r.left > q.right || r.bottom < q.top || r.top > q.bottom);
+    });
+  }
   try { var sp = JSON.parse(localStorage.getItem('hrr3d_modpos') || 'null'); if (sp) setPos(sp[0], sp[1]); } catch (e) {}
+  if (hitsGame()) { resetPos(); try { localStorage.removeItem('hrr3d_modpos'); } catch (e) {} }
 
   var dr = null; // kéo thả
   b.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
     var r = b.getBoundingClientRect();
     dr = { ox: e.clientX - r.left, oy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, mv: false };
     try { b.setPointerCapture(e.pointerId); } catch (x) {}
@@ -118,16 +130,23 @@
     if (!dr.mv && Math.hypot(e.clientX - dr.sx, e.clientY - dr.sy) > 6) dr.mv = true;
     if (dr.mv) { setPos(e.clientX - dr.ox, e.clientY - dr.oy); if (p.style.display === 'block') place(); }
   });
-  b.addEventListener('pointerup', function () {
+  b.addEventListener('pointerup', function (e) {
     if (!dr) return;
+    e.preventDefault();
     var mv = dr.mv; dr = null;
-    if (mv) { var r = b.getBoundingClientRect(); try { localStorage.setItem('hrr3d_modpos', JSON.stringify([r.left, r.top])); } catch (x) {} }
+    if (mv) {
+      if (hitsGame()) { resetPos(); try { localStorage.removeItem('hrr3d_modpos'); } catch (x) {} }
+      else { var r = b.getBoundingClientRect(); try { localStorage.setItem('hrr3d_modpos', JSON.stringify([r.left, r.top])); } catch (x) {} }
+      if (p.style.display === 'block') place();
+    }
     else if (p.style.display === 'block') p.style.display = 'none';
     else { p.style.display = 'block'; place(); }
+    b.blur();
   });
   b.addEventListener('pointercancel', function () { dr = null; });
   addEventListener('resize', function () {
     var r = b.getBoundingClientRect(); setPos(r.left, r.top);
+    if (hitsGame()) resetPos();
     if (p.style.display === 'block') place();
   });
 
@@ -135,6 +154,7 @@
     e.onchange = function () {
       MOD[e.dataset.m] = e.checked ? 1 : 0;
       try { localStorage.setItem('hrr3d_mod', JSON.stringify(MOD)); } catch (x) {}
+      e.blur();
     };
   });
 
@@ -148,5 +168,6 @@
   sb.onclick = function () {
     MOD.sp = MOD.sp ? 0 : 1; paintSp();
     try { localStorage.setItem('hrr3d_mod', JSON.stringify(MOD)); } catch (x) {}
+    sb.blur();
   };
 })();
